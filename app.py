@@ -1,8 +1,12 @@
 """Auth flow"""
 
 import os
+import time
+import atexit
 from flask import Flask
 from flask import render_template
+
+from apscheduler.schedulers.background import BackgroundScheduler
 
 import spotipy
 from spotipy.oauth2 import SpotifyOAuth
@@ -14,6 +18,14 @@ import fetcher
 APP_CLIENT_ID = os.environ.get("SPOTIFY_CLIENT_ID")
 APP_CLIENT_SECRET = os.environ.get("SPOTIFY_CLIENT_SECRET")
 SCOPE = "user-read-recently-played"
+
+# Song history scheduler
+scheduler = BackgroundScheduler()
+scheduler.add_job(func=fetcher.sync_data, trigger="interval", seconds=3 *60 * 60)
+scheduler.start()
+
+# Shut down the scheduler when exiting the app
+atexit.register(lambda: scheduler.shutdown())
 
 
 app = Flask(__name__, static_url_path='')
@@ -28,7 +40,6 @@ def register_new_user():
     auth = SpotifyOAuth(client_id=APP_CLIENT_ID,
                         client_secret=APP_CLIENT_SECRET,
                         scope=SCOPE,
-                        cache_path="tmp-cache",
                         redirect_uri="http://localhost:8888/callback")
 
     sp = spotipy.Spotify(auth_manager=auth)
@@ -40,13 +51,17 @@ def register_new_user():
     users["users"].append(new_user)
     utils.save_json(users,'db/users.json')
 
+    print(f"Added new user {new_user['name']}")
+
     token = auth.get_cached_token()
 
     utils.save_json(token, f"db/{new_user['id']}.token")
 
     first_song = fetcher.first_fetch(new_user)
 
-    # NOTE: need to delete tmp
+    # delete tmp .cache
+    os.remove(".cache")
+
     return render_template("successful.html",
                            name=new_user["name"],
                            id=new_user["id"],
@@ -64,3 +79,5 @@ def setup_user(user_id):
 
     return history
 
+if __name__ == '__main__':
+    app.run(host='0.0.0.0')

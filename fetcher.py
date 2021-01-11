@@ -1,5 +1,5 @@
 import os
-import json
+import time
 import utils
 import spotipy
 from spotipy.oauth2 import SpotifyOAuth
@@ -50,7 +50,6 @@ def first_fetch(user):
     return recent_songs[-1]
 
 
-
 def update_with_latest(user: dict):
 
     user_db_path = f"./db/{user['id']}-history.json"
@@ -86,6 +85,23 @@ def update_with_latest(user: dict):
 
         # save
         utils.save_json(history, user_db_path)
+
+
+
+def sync_data():
+    # get users
+    users = utils.load_json("./db/users.json")
+
+    for user in users["users"]:
+        try:
+            print(f"Fetching songs for {user['name']}")
+            update_with_latest(user)
+        except Exception as e:
+            print(f"Failed getting latest songs for user['name']")
+            print(e)
+
+
+
 
 
 #NOTE: sceduling
