@@ -1,13 +1,17 @@
 import os
 import time
 import utils
+import boto3
 import spotipy
 from spotipy.oauth2 import SpotifyOAuth
 
 
+# Spotify Related Config
 APP_CLIENT_ID = os.environ.get("SPOTIFY_CLIENT_ID")
 APP_CLIENT_SECRET = os.environ.get("SPOTIFY_CLIENT_SECRET")
 SCOPE = "user-read-recently-played"
+
+client = boto3.client("dynamodb", endpoint_url="http://localhost:5000")
 
 
 def parse_recent_plays(recent_plays):
