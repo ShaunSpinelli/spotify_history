@@ -1,34 +1,25 @@
 """Auth flow"""
 
 import os
-import time
 import atexit
 from flask import Flask
 from flask import render_template
+import boto3
+from boto3.dynamodb.conditions import Key
 
-from apscheduler.schedulers.background import BackgroundScheduler
+
 
 import spotipy
 from spotipy.oauth2 import SpotifyOAuth
 
 import utils
-import fetcher
-
 
 APP_CLIENT_ID = os.environ.get("SPOTIFY_CLIENT_ID")
 APP_CLIENT_SECRET = os.environ.get("SPOTIFY_CLIENT_SECRET")
 SCOPE = "user-read-recently-played"
 
-# Song history scheduler
-scheduler = BackgroundScheduler()
-scheduler.add_job(func=fetcher.sync_data, trigger="interval", seconds=3 *60 * 60)
-scheduler.start()
-
-# Shut down the scheduler when exiting the app
-atexit.register(lambda: scheduler.shutdown())
-
-
 app = Flask(__name__, static_url_path='')
+dynamodb = boto3.resource("dynamodb", endpoint_url="http://localhost:5000")
 
 
 @app.route('/')
@@ -44,36 +35,41 @@ def register_new_user():
 
     sp = spotipy.Spotify(auth_manager=auth)
     user = sp.current_user()
-    new_user = utils.setup_new_user(user)
-
-    # update users db with user
-    users = utils.load_json('db/users.json')
-    users["users"].append(new_user)
-    utils.save_json(users,'db/users.json')
-
-    print(f"Added new user {new_user['name']}")
+    print(user)
 
     token = auth.get_cached_token()
 
-    utils.save_json(token, f"db/{new_user['id']}.token")
+    new_user = { "id": user["id"],
+                 "name": user["display_name"],
+                 "token": token,
+                 "last_fetch": None}
 
-    first_song = fetcher.first_fetch(new_user)
+    table = dynamodb.Table('Users')
 
+    response = table.put_item(Item=new_user)
+
+    print(response)
+
+    # first_song = fetcher.first_fetch(new_user)
+    #
     # delete tmp .cache
     os.remove(".cache")
-
+    #
     return render_template("successful.html",
                            name=new_user["name"],
                            id=new_user["id"],
-                           time=first_song["played_at"],
-                           song=first_song["name"])
+                           time= "123", #first_song["played_at"],
+                           song="Do the harlem shake")# first_song["name"])
 
 
 
 @app.route('/mysongs/<user_id>')
 def setup_user(user_id):
     try:
-        history = utils.load_json(f"db/{user_id}-history.json")
+        table = dynamodb.Table('Songs')
+        history = table.query(
+        KeyConditionExpression=Key('user').eq(user_id)
+    )
     except FileNotFoundError:
         return "User Does Not Exist"
 
