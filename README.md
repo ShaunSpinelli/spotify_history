@@ -28,3 +28,13 @@ heroku logs -t -a spotify-hist
 ```
 heroku run bash -a spotify-hist
 ```
+
+
+## Lmabda stuff
+
+```
+pip3 install --target ./package
+
+zip -r ../my-deployment-package.zip .
+
+```

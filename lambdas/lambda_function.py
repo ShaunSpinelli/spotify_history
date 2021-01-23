@@ -1,32 +1,5 @@
-# def first_fetch(user):
-#     history = {}
-#     user_db_path = f"./db/{user['id']}-history.json"
-#
-#     sp = get_spotify(username=user["name"], cache_path=f"db/{user['id']}.token")
-#     recent_plays = sp.current_user_recently_played()
-#
-#     recent_songs = parse_recent_plays(recent_plays)
-#     print(f"Found {len(recent_songs)} new songs")
-#
-#     # get new latest song to update db
-#     latest = to_utc_m(recent_songs[0]["played_at"])
-#
-#     # update last fetch
-#     history["last_fetch"] = latest
-#
-#     # update with new songs
-#     history["songs"] = recent_songs
-#
-#     # save
-#     utils.save_json(history, user_db_path)
-#
-#     return recent_songs[-1]
-
-
-
-
 import os
-import time
+import uuid
 import json
 import boto3
 import spotipy
@@ -38,9 +11,9 @@ from spotipy.oauth2 import SpotifyOAuth
 APP_CLIENT_ID = os.environ.get("SPOTIFY_CLIENT_ID")
 APP_CLIENT_SECRET = os.environ.get("SPOTIFY_CLIENT_SECRET")
 SCOPE = "user-read-recently-played"
+DYNAMODB_ENDPOINT = os.environ.get("DYNAMO_ENDPOINT")#"http://localhost:5000"
 
-
-dynamodb = boto3.resource("dynamodb", endpoint_url="http://localhost:5000")
+dynamodb = boto3.resource("dynamodb", endpoint_url=DYNAMODB_ENDPOINT)
 
 def save_json(data: dict, path:str) -> None:
     with open(path, 'w') as outfile:
@@ -62,8 +35,20 @@ def get_users():
     return response["Items"]
 
 def parse_recent_plays(recent_plays, user_id):
-    return [{"name": s["track"]["name"], "id":s["track"]["id"], "played_at":s["played_at"], "user": user_id}
-            for s in recent_plays["items"]]
+    songs_list = []
+    for song in recent_plays["items"]:
+        id = str(uuid.uuid4())
+        artists = [a['name'] for a in song["track"]["album"]["artists"]]
+        name = f"{song['track']['name']} - {', '.join(artists)}"
+        songs_list.append({
+            "id": id,
+            "name": name,
+            "songId": song["track"]["id"],
+            "played_at": song["played_at"],
+            "user": user_id
+        })
+
+    return songs_list
 
 
 def get_spotify(username: str, cache_path: str) -> spotipy.Spotify:
@@ -94,7 +79,7 @@ def update_user_latest(latest, user):
     response = table.update_item(
         Key={
             'id': user["id"],
-            "user": user["name"]
+            "name": user["name"]
         },
         UpdateExpression="set last_fetch = :r",
         ExpressionAttributeValues={
@@ -116,7 +101,7 @@ def update_with_latest(user: dict):
 
     # set up spotify client for user
 
-    token_path = "./token.tok"
+    token_path = "/tmp/token.tok"
 
     user["token"]["expires_in"] = int(user["token"]["expires_in"])
     user["token"]["expires_at"] = int(user["token"]["expires_at"])
@@ -129,6 +114,7 @@ def update_with_latest(user: dict):
     recent_plays = sp.current_user_recently_played(after=latest)
 
     if len(recent_plays["items"]) > 0:
+
 
         recent_songs = parse_recent_plays(recent_plays, user["id"])
         print(f"Found {len(recent_songs)} new songs")
@@ -160,6 +146,5 @@ def sync_data():
 
 
 
-if __name__ == '__main__':
+def lambda_handler(event, context):
     sync_data()
-    # print(get_users())
