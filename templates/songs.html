@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Your History</title>
+    <link href="https://unpkg.com/tailwindcss@1.2.0/dist/tailwind.min.css" rel="stylesheet">
+
+</head>
+<body>
+<div class="flex items-center justify-center" style="background: #edf2f7;">
+    <div class="md:px-32 py-8 w-3/5">
+  <div class="shadow overflow-hidden rounded border-b border-gray-200">
+    <table class=" table-auto min-w-full bg-white">
+      <thead class="bg-gray-800 text-white">
+        <tr>
+          <th class="w-1/5 text-left py-3 px-4 uppercase font-semibold text-sm"></th>
+          <th class="w-2/5 text-left py-3 px-4 uppercase font-semibold text-sm">Song</th>
+          <th class="w-2/5 text-left py-3 px-4 uppercase font-semibold text-sm">Played At</th>
+        </tr>
+      </thead>
+    <tbody class="text-gray-700">
+    {% for song in songs %}
+      <tr class='{{"bg-gray-100" if loop.index % 2 == 1 else ""}}'>
+        <td class="w-1/5  text-center py-3 px-4">{{loop.index}}</td>
+        <td class="w-2/5 text-left py-3 px-4">{{song["name"]}}</td>
+        <td class="w-2/5 text-left py-3 px-4">{{song["played_at"]}} UTC</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+    </table>
+  </div>
+</div>
+</div>
+</body>
+</html>
