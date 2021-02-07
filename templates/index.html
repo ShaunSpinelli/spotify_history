@@ -4,13 +4,25 @@
 <head>
     <meta charset="UTF-8">
     <title>Spotify Song History Tracker</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/MaterialDesign-Webfont/5.3.45/css/materialdesignicons.min.css" rel="stylesheet">
+    <link href="https://unpkg.com/tailwindcss@1.2.0/dist/tailwind.min.css" rel="stylesheet">
 </head>
 <body>
-    <h1>Spotify Song History Tracker</h1>
-    <p>Spotify only lets users retrive last 50 song played. This api will keep a record of all your songs played</p>
-    <form  action="/new_user" method="post">
-    <input type="submit">
-    </form>
-
+<div class="min-w-screen min-h-screen bg-blue-100 flex items-center p-5 lg:p-20 overflow-hidden relative">
+    <div class="flex-1 min-h-full min-w-full rounded-3xl bg-white shadow-xl p-10 lg:p-20 text-gray-800 relative md:flex items-center text-center md:text-left">
+        <div class="w-full md:w-1/2">
+            <div class="mb-10 md:mb-20 text-gray-600 font-light">
+                <h1 class="font-black uppercase text-3xl lg:text-5xl text-green-500 mb-10">Spotify History</h1>
+                <p>Spotify only lets users retrive their last 50 songs played.</p>
+                <p>This app will keep a record of all the songs you listen too.</p>
+            </div>
+        </div>
+        <div class="w-full md:w-1/2 text-center">
+                <form  action="/register" method="post">
+                <input class="border border-indigo-500 bg-indigo-500 text-white rounded-md px-4 py-2 m-2 transition duration-500 ease select-none hover:bg-indigo-600 focus:outline-none focus:shadow-outline cursor-pointer" type="submit" value="Login/Register">
+                </form>
+        </div>
+    </div>
+</div>
 </body>
 </html>
