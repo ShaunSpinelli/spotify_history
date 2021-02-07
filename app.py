@@ -2,15 +2,20 @@
 
 import os
 import time
-from flask import Flask
+import base64
+import requests
+from flask import Flask, redirect, request
 from flask import render_template
 import boto3
 from boto3.dynamodb.conditions import Key
 import dateutil
-import  logging
+import logging
+import utils
+
+logging.basicConfig(level=logging.INFO, format="[%(levelname)s] %(name)s: %(message)s")
+
 
 logger = logging.getLogger(__name__)
-
 
 
 import spotipy
@@ -32,17 +37,62 @@ def index():
     logger.warning("Giving home screen")
     return render_template('index.html')
 
-@app.route('/new_user', methods=["POST"])
+
+@app.route('/register', methods=["POST"])
+def register():
+
+    return redirect("https://accounts.spotify.com/authorize?"
+                    f"response_type=code"
+                    f"&client_id={APP_CLIENT_ID}"
+                    f"&scope={SCOPE}"
+                    f"&redirect_uri={REDIRECT_URI}")
+
+
+@app.route('/registercallback')
 def register_new_user():
 
-    logger.warning("doing some stuff")
+ # get access and refresh token
+    code = request.args.get('code')
+    state = request.args.get('state')
+
+    payload = {"code": code, "redirect_uri": f"{REDIRECT_URI}", "grant_type":"authorization_code"}
+
+    auth_str = f"{APP_CLIENT_ID}:{APP_CLIENT_SECRET}"
+
+    password_base64 = base64.urlsafe_b64encode(auth_str.encode()).decode()
+
+    headers = {"Authorization": f"Basic {password_base64}", 'Content-Type': 'application/x-www-form-urlencoded'}
+
+    res = requests.post("https://accounts.spotify.com/api/token", headers=headers, data=payload)
+
+    logger.debug(res.status_code)
+
+
+    token_data = res.json()
+
+
+    logger.debug(token_data)
+    if token_data.get('error'):
+        return token_data
+
+    token_data["expires_at"] = int(time.time()) + token_data["expires_in"]
+
+    token_path = "./token_data"
+
+
+    utils.save_json(token_data, token_path)
+
+
+    logger.debug("Setting up spotipy Oauth")
 
     auth = SpotifyOAuth(client_id=APP_CLIENT_ID,
                         client_secret=APP_CLIENT_SECRET,
                         scope=SCOPE,
-                        redirect_uri="http://localhost:8888/callback")
+                        cache_path=token_path,
+                        redirect_uri=REDIRECT_URI)
     logger.warning("Getting spotify client")
     sp = spotipy.Spotify(auth_manager=auth)
+    logger.warning("Got spotify auth user")
     user = sp.current_user()
     logger.warning("Got user")
     token = auth.get_cached_token()
@@ -57,21 +107,30 @@ def register_new_user():
     dynamodb = boto3.resource("dynamodb", endpoint_url=DYNAMODB_ENDPOINT)
     table = dynamodb.Table('Users')
 
-    response = table.put_item(Item=new_user)
+    # check if user is registered, if they are redirect them to their songs page
+
+    response = table.get_item(Key={
+        "id": user["id"],
+        "name": user["display_name"],
+    })
+
+    if response.get("Item") is not None:
+        return redirect(f"mysongs/{user['id']}")
+
+    #
+    r = table.put_item(Item=new_user)
 
     # delete tmp .cache
-    os.remove(".cache")
+    os.remove(token_path)
     #
     return render_template("successful.html",
                            name=new_user["name"],
-                           id=new_user["id"],
-                           time= "123", #first_song["played_at"],
-                           song="Do the harlem shake")# first_song["name"])
+                           id=new_user["id"],)
 
 
 
 @app.route('/mysongs/<user_id>')
-def setup_user(user_id):
+def get_users_songs(user_id):
     dynamodb = boto3.resource("dynamodb", endpoint_url=DYNAMODB_ENDPOINT)
 
     try:
@@ -91,7 +150,7 @@ def setup_user(user_id):
 
     return render_template("songs.html", songs=history["Items"])
 
-@app.route('/registercallback')
+@app.route('/yo')
 def callback():
     return "Thanks for signing up"
 
