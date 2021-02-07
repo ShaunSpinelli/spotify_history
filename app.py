@@ -115,6 +115,7 @@ def register_new_user():
     })
 
     if response.get("Item") is not None:
+        os.remove(token_path)
         return redirect(f"mysongs/{user['id']}")
 
     #
