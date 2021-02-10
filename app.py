@@ -40,6 +40,7 @@ def index():
 
 @app.route('/register', methods=["POST"])
 def register():
+    #TODO: include state in the request
 
     return redirect("https://accounts.spotify.com/authorize?"
                     f"response_type=code"
@@ -50,8 +51,7 @@ def register():
 
 @app.route('/registercallback')
 def register_new_user():
-
- # get access and refresh token
+    # get access and refresh token
     code = request.args.get('code')
     state = request.args.get('state')
 
@@ -62,6 +62,8 @@ def register_new_user():
     password_base64 = base64.urlsafe_b64encode(auth_str.encode()).decode()
 
     headers = {"Authorization": f"Basic {password_base64}", 'Content-Type': 'application/x-www-form-urlencoded'}
+
+    # TODO: handle this response better
 
     res = requests.post("https://accounts.spotify.com/api/token", headers=headers, data=payload)
 
@@ -75,26 +77,22 @@ def register_new_user():
     if token_data.get('error'):
         return token_data
 
+    # add extra field Spotipy is expecting
     token_data["expires_at"] = int(time.time()) + token_data["expires_in"]
 
     token_path = "./token_data"
 
-
     utils.save_json(token_data, token_path)
 
-
     logger.debug("Setting up spotipy Oauth")
-
     auth = SpotifyOAuth(client_id=APP_CLIENT_ID,
                         client_secret=APP_CLIENT_SECRET,
                         scope=SCOPE,
                         cache_path=token_path,
                         redirect_uri=REDIRECT_URI)
-    logger.warning("Getting spotify client")
     sp = spotipy.Spotify(auth_manager=auth)
-    logger.warning("Got spotify auth user")
+
     user = sp.current_user()
-    logger.warning("Got user")
     token = auth.get_cached_token()
 
     new_user = { "id": user["id"],
@@ -102,13 +100,12 @@ def register_new_user():
                  "token": token,
                  "last_fetch": None}
 
-
     logger.warning("Adding user to db")
+
     dynamodb = boto3.resource("dynamodb", endpoint_url=DYNAMODB_ENDPOINT)
     table = dynamodb.Table('Users')
 
     # check if user is registered, if they are redirect them to their songs page
-
     response = table.get_item(Key={
         "id": user["id"],
         "name": user["display_name"],
@@ -118,12 +115,12 @@ def register_new_user():
         os.remove(token_path)
         return redirect(f"mysongs/{user['id']}")
 
-    #
+    # add user to db
     r = table.put_item(Item=new_user)
 
     # delete tmp .cache
     os.remove(token_path)
-    #
+
     return render_template("successful.html",
                            name=new_user["name"],
                            id=new_user["id"],)
@@ -150,10 +147,6 @@ def get_users_songs(user_id):
     history["Items"].sort(key= lambda x: x.get("unix_time"), reverse=True)
 
     return render_template("songs.html", songs=history["Items"])
-
-@app.route('/yo')
-def callback():
-    return "Thanks for signing up"
 
 
 if __name__ == '__main__':

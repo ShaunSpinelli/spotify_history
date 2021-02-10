@@ -11,7 +11,7 @@ from spotipy.oauth2 import SpotifyOAuth
 APP_CLIENT_ID = os.environ.get("SPOTIFY_CLIENT_ID")
 APP_CLIENT_SECRET = os.environ.get("SPOTIFY_CLIENT_SECRET")
 SCOPE = "user-read-recently-played"
-DYNAMODB_ENDPOINT = os.environ.get("DYNAMO_ENDPOINT")#"http://localhost:5000"
+DYNAMODB_ENDPOINT = os.environ.get("DYNAMO_ENDPOINT", "http://localhost:5000")
 
 dynamodb = boto3.resource("dynamodb", endpoint_url=DYNAMODB_ENDPOINT)
 
