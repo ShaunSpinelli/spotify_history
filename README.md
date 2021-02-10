@@ -1,5 +1,7 @@
 # Spotify history tracking app
 
+live on [heroku](https://spotify-hist.herokuapp.com/)
+
 
 ## Release with heroku
 
