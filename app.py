@@ -12,6 +12,8 @@ import dateutil
 import logging
 import utils
 
+import song_stats
+
 logging.basicConfig(level=logging.INFO, format="[%(levelname)s] %(name)s: %(message)s")
 
 
@@ -34,7 +36,6 @@ app = Flask(__name__, static_url_path='')
 
 @app.route('/')
 def index():
-    logger.warning("Giving home screen")
     return render_template('index.html')
 
 
@@ -127,8 +128,8 @@ def register_new_user():
 
 
 
-@app.route('/mysongs/<user_id>')
-def get_users_songs(user_id):
+@app.route('/mysongs/table/<user_id>')
+def get_users_songs_table(user_id):
     dynamodb = boto3.resource("dynamodb", endpoint_url=DYNAMODB_ENDPOINT)
 
     try:
@@ -147,6 +148,28 @@ def get_users_songs(user_id):
     history["Items"].sort(key= lambda x: x.get("unix_time"), reverse=True)
 
     return render_template("songs.html", songs=history["Items"])
+
+
+@app.route("/mysongs/dashboard/<user_id>")
+def dashboard(user_id):
+    return render_template("dashboard.html", user=user_id)
+
+
+@app.route('/api/mysongs/<user_id>')
+def get_users_songs_data(user_id):
+    dynamodb = boto3.resource("dynamodb", endpoint_url=DYNAMODB_ENDPOINT)
+
+    try:
+        table = dynamodb.Table('Songs')
+        history = table.query(
+        KeyConditionExpression=Key('user').eq(user_id)
+    )
+    except FileNotFoundError:
+        return "User Does Not Exist"
+
+    stats = song_stats.get_song_stats(history["Items"])
+
+    return stats
 
 
 if __name__ == '__main__':

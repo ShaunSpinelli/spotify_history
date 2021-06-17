@@ -1,3 +1,5 @@
+// import { buildWeekdayChart }  from './barChart.js';
+
 var options = {
     series: [{
     name: 'Songs',
@@ -25,7 +27,7 @@ var options = {
 //       colors: ["#304758"]
 //     }
 //   },
-  
+
   xaxis: {
     categories: ["Mon", "Tues", "Wed", "Thurs", "Fri", "Sat", "Sun"],
     position: 'top',
@@ -64,7 +66,7 @@ var options = {
         return val + " songs";
       }
     }
-  
+
   },
   title: {
     text: 'Songs listened to by Weekday',
@@ -77,9 +79,27 @@ var options = {
   }
   };
 
+const href = window.location.href.split("/")
+const user = href[href.length - 1]
 
-options.series[0].data = [1,2,3,4,5,6,7]
+fetch(`/api/mysongs/${user}`)
+  .then(res => res.json())
+  .then(json => {
+
+    // buildWeekdayChart(json["month_songs"], "Songs list to over last month", '#wd-month')
+
+    // console.log(json)
+    // const mySongs = Object.entries(json["month_songs"]).reduce((acc, [k,v]) => {
+    //    acc[k] =v
+    //    return acc
+    // }, [0,0,0,0,0,0,0])
+    // options.series[0].data = mySongs
+
+    // const chart = new ApexCharts(document.querySelector("#wd-month"), options);
+    // chart.render();
+
+  })
 
 
-var chart = new ApexCharts(document.querySelector("#chart"), options);
-chart.render();
+
+
