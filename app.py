@@ -126,6 +126,19 @@ def register_new_user():
     })
 
     if response.get("Item") is not None:
+        response2 = table.update_item(
+            Key={
+                "id":user["id"],
+                "name": user["display_name"]
+            },
+            UpdateExpression="set #tok=:t,",
+            ExpressionAttributeValues={
+                ':t': token,
+            },
+            ExpressionAttributeNames={
+                "#tok": "timestamp"
+            }
+        )
         os.remove(token_path)
         return redirect(f"mysongs/{user['id']}")
 
