@@ -20,11 +20,11 @@ logger = logging.getLogger(__name__)
 
 import spotipy
 from spotipy.oauth2 import SpotifyOAuth
-
-APP_CLIENT_ID = os.environ.get("SPOTIFY_CLIENT_ID")
-APP_CLIENT_SECRET = os.environ.get("SPOTIFY_CLIENT_SECRET")
-DYNAMODB_ENDPOINT = os.environ.get("DYNAMO_ENDPOINT", "http://localhost:5000")
-REDIRECT_URI = os.environ.get("REDIRECT_URI", "http://localhost:8000/registercallback")
+#TODO: DO NOT COMMIT SPOTIFY ID and SECRET!!!!!!!!!
+APP_CLIENT_ID = os.environ.get("SPOTIFY_CLIENT_ID", "")
+APP_CLIENT_SECRET = os.environ.get("SPOTIFY_CLIENT_SECRET", "")
+DYNAMODB_ENDPOINT = os.environ.get("DYNAMO_ENDPOINT", "http://localhost:8888")
+REDIRECT_URI = os.environ.get("REDIRECT_URI", "http://localhost:5000/registercallback")
 
 
 SCOPE = "user-read-recently-played"
@@ -36,6 +36,20 @@ app = Flask(__name__, static_url_path='')
 def index():
     logger.warning("Giving home screen")
     return render_template('index.html')
+
+@app.route('/test')
+def test():
+    logger.info(f"DYNAMODB_ENDPOINT: {DYNAMODB_ENDPOINT}")
+    dynamodb = boto3.resource("dynamodb", endpoint_url=DYNAMODB_ENDPOINT, region_name='us-west-2')
+    table = dynamodb.Table('Users')
+    r = table.put_item(Item={
+        "id": 12334,
+        "name": 'Jimbo',
+        "token": '1233460bdfsg',
+        "last_fetch": None
+    })
+    return r
+
 
 
 @app.route('/register', methods=["POST"])
@@ -102,7 +116,7 @@ def register_new_user():
 
     logger.warning("Adding user to db")
 
-    dynamodb = boto3.resource("dynamodb", endpoint_url=DYNAMODB_ENDPOINT)
+    dynamodb = boto3.resource("dynamodb", endpoint_url=DYNAMODB_ENDPOINT, region_name='us-west-2')
     table = dynamodb.Table('Users')
 
     # check if user is registered, if they are redirect them to their songs page

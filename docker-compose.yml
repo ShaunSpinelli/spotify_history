@@ -1,0 +1,17 @@
+services:
+  api:
+    env_file:
+      - dev.env
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    ports:
+      - "5000:5000"
+    environment:
+      -  DYNAMO_ENDPOINT=http://db:8888
+  db:
+    build:
+      context: .
+      dockerfile: Dockerfile.db
+    ports:
+      - "8888:8888"
