@@ -126,17 +126,18 @@ def register_new_user():
     })
 
     if response.get("Item") is not None:
+        logger.warning(f"Updating user: {user['display_name']} with new token")
         response2 = table.update_item(
             Key={
                 "id":user["id"],
                 "name": user["display_name"]
             },
-            UpdateExpression="set #tok=:t,",
+            UpdateExpression="set #tok=:t",
             ExpressionAttributeValues={
                 ':t': token,
             },
             ExpressionAttributeNames={
-                "#tok": "timestamp"
+                "#tok": "token"
             }
         )
         os.remove(token_path)
