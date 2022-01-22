@@ -14,6 +14,8 @@ import logging
 import utils
 import stats
 
+import song_stats
+
 logging.basicConfig(level=logging.INFO, format="[%(levelname)s] %(name)s: %(message)s")
 
 
@@ -38,7 +40,6 @@ app.config['CORS_HEADERS'] = 'Content-Type'
 
 @app.route('/')
 def index():
-    logger.warning("Giving home screen")
     return render_template('index.html')
 
 @app.route('/test')
@@ -159,8 +160,8 @@ def register_new_user():
 
 
 
-@app.route('/mysongs/<user_id>')
-def get_users_songs(user_id):
+@app.route('/mysongs/table/<user_id>')
+def get_users_songs_table(user_id):
     dynamodb = boto3.resource("dynamodb", endpoint_url=DYNAMODB_ENDPOINT)
 
     try:
