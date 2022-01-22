@@ -17,3 +17,5 @@ urllib3==1.26.2
 Werkzeug==1.0.1
 gunicorn
 boto3
+pandas
+flask-cors

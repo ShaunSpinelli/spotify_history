@@ -6,11 +6,13 @@ import base64
 import requests
 from flask import Flask, redirect, request
 from flask import render_template
+from flask_cors import CORS, cross_origin
 import boto3
 from boto3.dynamodb.conditions import Key
 import dateutil
 import logging
 import utils
+import stats
 
 logging.basicConfig(level=logging.INFO, format="[%(levelname)s] %(name)s: %(message)s")
 
@@ -30,6 +32,8 @@ REDIRECT_URI = os.environ.get("REDIRECT_URI", "http://localhost:5000/registercal
 SCOPE = "user-read-recently-played"
 
 app = Flask(__name__, static_url_path='')
+cors = CORS(app)
+app.config['CORS_HEADERS'] = 'Content-Type'
 
 
 @app.route('/')
@@ -175,6 +179,34 @@ def get_users_songs(user_id):
     history["Items"].sort(key= lambda x: x.get("unix_time"), reverse=True)
 
     return render_template("songs.html", songs=history["Items"])
+
+
+# API STUFF
+@app.route('/api/user/<user_id>/artists')
+def get_users_top_played_artists(user_id):
+    artist_count = int(request.args.get('artist_count', 10))
+    time_range = request.args.get('range', '1M')
+    logger.info(f"artis_count: {artist_count}, time_range:{time_range}, user_id: {user_id}")
+
+    dynamodb = boto3.resource("dynamodb", endpoint_url=DYNAMODB_ENDPOINT)
+
+    try:
+        table = dynamodb.Table('Songs')
+        history = table.query(
+        KeyConditionExpression=Key('user').eq(user_id)
+    )
+    except FileNotFoundError:
+        return "User Does Not Exist"
+
+    for song in history["Items"]:
+        t = dateutil.parser.parse(song["played_at"])
+        song["unix_time"] = t.timestamp()
+        song["played_at"] = t.strftime("%c")
+    logger.info("processing songs")
+    songs_df = stats.preprocess_songs(history["Items"])
+    res = stats.artist_listen_count_over_time(songs_df, time_range, artist_count)
+    return res
+
 
 
 if __name__ == '__main__':
