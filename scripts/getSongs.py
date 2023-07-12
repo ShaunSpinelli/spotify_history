@@ -50,12 +50,12 @@ def get_users_songs(user_id):
     except FileNotFoundError:
         return "User Does Not Exist"
 
-    for song in history["Items"]:
-        t = dateutil.parser.parse(song["played_at"])
-        song["unix_time"] = t.timestamp()
-        song["played_at"] = t.strftime("%c")
+    # for song in history["Items"]:
+    #     t = dateutil.parser.parse(song["played_at"])
+    #     song["unix_time"] = t.timestamp()
+    #     song["played_at"] = t.strftime("%c")
 
-    history["Items"].sort(key= lambda x: x.get("unix_time"), reverse=True)
+    # history["Items"].sort(key= lambda x: x.get("unix_time"), reverse=True)
 
     save_json(history,"shaun-songs.json")
 

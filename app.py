@@ -203,11 +203,35 @@ def get_users_top_played_artists(user_id):
         t = dateutil.parser.parse(song["played_at"])
         song["unix_time"] = t.timestamp()
         song["played_at"] = t.strftime("%c")
+
     logger.info("processing songs")
     songs_df = stats.preprocess_songs(history["Items"])
     res = stats.artist_listen_count_over_time(songs_df, time_range, artist_count)
     return res
 
+@app.route('/api/user/<user_id>/listening')
+def get_time_of_day_listening(user_id):
+    time_range = request.args.get('range', 'weekday')
+
+    dynamodb = boto3.resource("dynamodb", endpoint_url=DYNAMODB_ENDPOINT)
+
+    try:
+        table = dynamodb.Table('Songs')
+        history = table.query(
+        KeyConditionExpression=Key('user').eq(user_id)
+    )
+    except FileNotFoundError:
+        return "User Does Not Exist"
+
+    for song in history["Items"]:
+        t = dateutil.parser.parse(song["played_at"])
+        song["unix_time"] = t.timestamp()
+        song["played_at"] = t.strftime("%c")
+
+    logger.info("processing songs")
+    songs_df = stats.preprocess_songs(history["Items"])
+    res = stats.hour_of_day_listen_times_array(songs_df, time_range)
+    return {"result": res}
 
 
 if __name__ == '__main__':

@@ -20,10 +20,9 @@ def main():
     # add songs
     print("Adding songs")
     songTable = dynamodb.Table('Songs')
-    songs = load_json('db/songs.json')
+    songs = load_json('data/shaun-songs.json')
 
-    for song in songs:
-        print(song)
+    for song in songs["Items"]:
         songTable.put_item(
             Item=song
         )
